@@ -1,6 +1,6 @@
 services:
   osx:
-    image: macos:big-sur
+    image: macos:toan
     build:
       context: .
       dockerfile: Dockerfile
@@ -15,7 +15,7 @@ services:
       - /dev/kvm
       - /dev/bus/usb
     volumes:
-      - ./bigsur/storage:/storage
+      - ./storage:/storage
     cap_add:
       - NET_ADMIN
     ports:
