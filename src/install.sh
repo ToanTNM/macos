@@ -29,6 +29,8 @@ downloadImage() {
       board="Mac-2BD1B31983FE1663" ;;
     "catalina" | "10"* )
       board="Mac-00BE6ED71E35EB86" ;;
+    "mojave" | "9"* )
+      board="Mac-942C5DF58193131B" ;;
     *)
       error "Unknown VERSION specified, value \"${version}\" is not recognized!"
       return 1 ;;

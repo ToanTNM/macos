@@ -1,6 +1,6 @@
 services:
   catalina:
-    image: dockurr/macos
+    image: macos:catalina
     build:
       context: .
       dockerfile: Dockerfile
@@ -11,12 +11,12 @@ services:
       RAM_SIZE: "4G"
       CPU_CORES: "4"
       ARGUMENTS: "-device usb-host,vendorid=0x1234,productid=0x1234"
-      BOOT_MODE: "hd" # ["full", "hd"]
+      BOOT_MODE: "full"
     devices:
       - /dev/kvm
       - /dev/bus/usb
-    # volumes:
-    #   - ./storage/catalina:/storage
+    volumes:
+      - ./storage/catalina:/storage
     cap_add:
       - NET_ADMIN
     ports:

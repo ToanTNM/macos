@@ -1,21 +1,22 @@
 services:
-  osx:
-    image: macos:toan
+  bigsur:
+    image: macos:bigsur
     build:
       context: .
       dockerfile: Dockerfile
-    container_name: macos
+    container_name: macos-bigsur
     environment:
-      VERSION: "big-sur"
+      VERSION: "bigsur"
       DISK_SIZE: "256G"
-      RAM_SIZE: "6G"
+      RAM_SIZE: "4G"
       CPU_CORES: "4"
       ARGUMENTS: "-device usb-host,vendorid=0x1234,productid=0x1234"
+      BOOT_MODE: "hd" # ["full", "hd"]
     devices:
       - /dev/kvm
       - /dev/bus/usb
     volumes:
-      - ./storage:/storage
+      - ./storage/bigsur:/storage
     cap_add:
       - NET_ADMIN
     ports:

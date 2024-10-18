@@ -1,12 +1,12 @@
 services:
-  catalina:
-    image: dockurr/macos
-    build:
-      context: .
-      dockerfile: Dockerfile
-    container_name: macos-catalina
+  sequoia:
+    image: macos:toan
+    # build:
+    #   context: .
+    #   dockerfile: Dockerfile
+    container_name: macos-sequoia
     environment:
-      VERSION: "catalina"
+      VERSION: "sequoia"
       DISK_SIZE: "256G"
       RAM_SIZE: "4G"
       CPU_CORES: "4"
@@ -15,8 +15,8 @@ services:
     devices:
       - /dev/kvm
       - /dev/bus/usb
-    # volumes:
-    #   - ./storage/catalina:/storage
+    volumes:
+      - ./storage/sequoia:/storage
     cap_add:
       - NET_ADMIN
     ports:
