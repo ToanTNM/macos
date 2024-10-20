@@ -1,12 +1,14 @@
 services:
   sequoia:
-    image: macos:toan
-    # build:
-    #   context: .
-    #   dockerfile: Dockerfile
+    image: macos:sequoia
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        - CONFIG=config.sequoia.plist
     container_name: macos-sequoia
     environment:
-      VERSION: "sequoia"
+      VERSION: "catalina"
       DISK_SIZE: "256G"
       RAM_SIZE: "4G"
       CPU_CORES: "4"

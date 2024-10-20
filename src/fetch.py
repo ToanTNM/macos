@@ -1,9 +1,19 @@
 #!/usr/bin/env python3
+# pylint: disable=C0301,C0116,C0103,R0903
+# source: https://github.com/kholia/OSX-KVM/blob/master/fetch-macOS-v2.py
 
 """
 Gather recovery information for Macs.
+
 Copyright (c) 2019, vit9696
-https://github.com/acidanthera/OpenCorePkg/blob/master/Utilities/macrecovery/macrecovery.py
+
+macrecovery is a tool that helps to automate recovery interaction. It can be
+used to download diagnostics and recovery as well as analyse MLB.
+
+Requires python to run. Run with `-h` argument to see all available arguments.
+
+Upstream: https://github.com/acidanthera/OpenCorePkg/tree/master/Utilities/macrecovery
+pylint -> Your code has been rated at -0.08/10 ;(
 """
 
 import argparse
@@ -43,6 +53,9 @@ INFO_SIGN_LINK = 'CU'
 INFO_SIGN_HASH = 'CH'
 INFO_SIGN_SESS = 'CT'
 INFO_REQURED = [INFO_PRODUCT, INFO_IMAGE_LINK, INFO_IMAGE_HASH, INFO_IMAGE_SESS, INFO_SIGN_LINK, INFO_SIGN_HASH, INFO_SIGN_SESS]
+
+# Use -2 for better resize stability on Windows
+TERMINAL_MARGIN = 2
 
 def run_query(url, headers, post=None, raw=False):
     if post is not None:
@@ -215,29 +228,34 @@ def save_image(url, sess, filename='', directory=''):
                 totalsize = int(headers[header])
                 break
         size = 0
-        last = 0
+        oldterminalsize = 0
         while True:
             chunk = response.read(2**20)
             if not chunk:
                 break
             fh.write(chunk)
             size += len(chunk)
+            try:
+                terminalsize = max(os.get_terminal_size().columns - TERMINAL_MARGIN, 0)
+            except OSError:
+                terminalsize = 80
+            if oldterminalsize != terminalsize:
+                print(f'\r{"":<{terminalsize}}', end='')
+                oldterminalsize = terminalsize
             if totalsize > 0:
                 progress = size / totalsize
-                if (progress - last) >= 0.01 or progress >= 1:
-                    last = progress
-                    print(f'\r{progress*100:.1f}% downloaded', end='')
+                barwidth = terminalsize // 3
+                print(f'\r{size / (2**20):.1f}/{totalsize / (2**20):.1f} MB ', end='')
+                if terminalsize > 55:
+                    print(f'|{"=" * int(barwidth * progress):<{barwidth}}|', end='')
+                print(f' {progress*100:.1f}% downloaded', end='')
             else:
                 # Fallback if Content-Length isn't available
-                progress = size / (2**20)
-                if (progress - last) >= 10:
-                    last = progress
-                    print(f'\r{progress} MB downloaded...', end='')
+                print(f'\r{size / (2**20)} MB downloaded...', end='')
             sys.stdout.flush()
         print('\nDownload complete!')
 
     return os.path.join(directory, os.path.basename(filename))
-
 
 def verify_image(dmgpath, cnkpath):
     print('Verifying image with chunklist...')
@@ -257,6 +275,24 @@ def verify_image(dmgpath, cnkpath):
         if dmgf.read(1) != b'':
             raise RuntimeError('Invalid image: larger than chunklist')
         print('\nImage verification complete!')
+
+# New version verify_image cause error when run in container, so revert to original version
+# def verify_image(dmgpath, cnkpath):    
+#     print('Verifying image with chunklist...')
+
+#     with open(dmgpath, 'rb') as dmgf:
+#         for cnkcount, (cnksize, cnkhash) in enumerate(verify_chunklist(cnkpath), 1):
+#             terminalsize = max(os.get_terminal_size().columns - TERMINAL_MARGIN, 0)
+#             print(f'\r{f"Chunk {cnkcount} ({cnksize} bytes)":<{terminalsize}}', end='')
+#             sys.stdout.flush()
+#             cnk = dmgf.read(cnksize)
+#             if len(cnk) != cnksize:
+#                 raise RuntimeError(f'Invalid chunk {cnkcount} size: expected {cnksize}, read {len(cnk)}')
+#             if hashlib.sha256(cnk).digest() != cnkhash:
+#                 raise RuntimeError(f'Invalid chunk {cnkcount}: hash mismatch')
+#         if dmgf.read(1) != b'':
+#             raise RuntimeError('Invalid image: larger than chunklist')
+#         print('\nImage verification complete!')
 
 
 def action_download(args):
@@ -464,14 +500,24 @@ def action_guess(args):
     return None
 
 
+# https://stackoverflow.com/questions/2280334/shortest-way-of-creating-an-object-with-arbitrary-attributes-in-python
+class gdata:
+    """
+    A string to make pylint happy ;)
+    """
+    def __init__(self, **kwargs):
+        self.__dict__.update(kwargs)
+
 def main():
     parser = argparse.ArgumentParser(description='Gather recovery information for Macs')
-    parser.add_argument('action', choices=['download', 'selfcheck', 'verify', 'guess'],
+    parser.add_argument('--action', choices=['download', 'selfcheck', 'verify', 'guess'], default='',
                         help='Action to perform: "download" - performs recovery downloading,'
                         ' "selfcheck" checks whether MLB serial validation is possible, "verify" performs'
                         ' MLB serial verification, "guess" tries to find suitable mac model for MLB.')
-    parser.add_argument('-o', '--outdir', type=str, default='com.apple.recovery.boot',
-                        help='customise output directory for downloading, defaults to com.apple.recovery.boot')
+    # parser.add_argument('-o', '--outdir', type=str, default='com.apple.recovery.boot',
+    #                     help='customise output directory for downloading, defaults to com.apple.recovery.boot')
+    parser.add_argument('-o', '--outdir', type=str, default='.',
+                        help='customise output directory for downloading, defaults to current folder .')
     parser.add_argument('-n', '--basename', type=str, default='',
                         help='customise base name for downloading, defaults to remote name')
     parser.add_argument('-b', '--board-id', type=str, default=RECENT_MAC,
@@ -483,6 +529,8 @@ def main():
     parser.add_argument('-os', '--os-type', type=str, default='default', choices=['default', 'latest'],
                         help=f'use specified os type, defaults to default {MLB_ZERO}')
     parser.add_argument('-diag', '--diagnostics', action='store_true', help='download diagnostics image')
+    parser.add_argument('-s', '--shortname', type=str, default='',
+                        help='available options: highsierra, mojave, catalina, bigsur, monterey, ventura, sonoma, sequoia')
     parser.add_argument('-v', '--verbose', action='store_true', help='print debug information')
     parser.add_argument('-db', '--board-db', type=str, default=os.path.join(SELF_DIR, 'boards.json'),
                         help='use custom board list for checking, defaults to boards.json')
@@ -505,7 +553,50 @@ def main():
     if args.action == 'guess':
         return action_guess(args)
 
-    assert False
+    # No action specified, so present a download menu instead
+    # https://github.com/acidanthera/OpenCorePkg/blob/master/Utilities/macrecovery/boards.json
+    # https://github.com/corpnewt/gibMacOS
+    products = [
+            {"name": "High Sierra (10.13)", "b": "Mac-7BA5B2D9E42DDD94", "m": "00000000000J80300", "short": "highsierra"},
+            {"name": "Mojave (10.14)", "b": "Mac-7BA5B2DFE22DDD8C", "m": "00000000000KXPG00", "short": "mojave"},
+            {"name": "Catalina (10.15)", "b": "Mac-00BE6ED71E35EB86", "m": "00000000000000000", "short": "catalina"},
+            {"name": "Big Sur (11.7)", "b": "Mac-2BD1B31983FE1663", "m": "00000000000000000", "short": "bigsur"},
+            {"name": "Monterey (12.6)", "b": "Mac-B809C3757DA9BB8D", "m": "00000000000000000", "os_type": "latest", "short": "monterey"},
+            {"name": "Ventura (13) - RECOMMENDED", "b": "Mac-4B682C642B45593E", "m": "00000000000000000", "os_type": "latest", "short": "ventura"},
+            {"name": "Sonoma (14) ", "b": "Mac-827FAC58A8FDFA22", "m": "00000000000000000", "short": "sonoma"},
+            {"name": "Sequoia (15) ", "b": "Mac-7BA5B2D9E42DDD94", "m": "00000000000000000", "short": "sequoia", "os_type": "latest"},
+    ]
+    # test locally using args.shortname = 'mojave'
+    if not args.shortname or args.shortname == '':        
+        for index, product in enumerate(products):
+            name = product["name"]
+            print('%s. %12s' % (index + 1, name))
+            
+        answer = input('\nChoose a product to download (1-%s): ' % len(products))
+        try:
+            index = int(answer) - 1
+            if index < 0:
+                raise ValueError
+        except (ValueError, IndexError):
+            pass
+    else:
+        index = 0
+        for product in products:
+            if args.shortname == product['short']:
+                break
+            else:
+                index = index+1
+    product = products[index]
+    
+    # try:
+    #     os_type = product["os_type"]
+    # except:
+    #     os_type = "default"
+    print(f'args: {args}')
+    
+    args = gdata(mlb = product["m"], board_id = product["b"], diagnostics =
+            False, os_type = args.os_type, verbose=False, basename=args.basename, outdir=args.outdir)
+    action_download(args)
 
 
 if __name__ == '__main__':

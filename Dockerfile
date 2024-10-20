@@ -6,6 +6,7 @@ ARG REPO_KVM_OPENCORE="https://github.com/thenickdude/KVM-Opencore"
 ARG DEBCONF_NOWARNINGS="yes"
 ARG DEBIAN_FRONTEND="noninteractive"
 ARG DEBCONF_NONINTERACTIVE_SEEN="true"
+ARG CONFIG="config.plist"
 
 RUN set -eu && \
     apt-get update && \
@@ -16,7 +17,7 @@ RUN set -eu && \
     rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
 
 COPY --chmod=755 ./src/build.sh /run
-COPY --chmod=644 ./config.plist /run
+COPY --chmod=644 ./$CONFIG /run/config.plist
 
 ADD $REPO_KVM_OPENCORE/releases/download/$VERSION_KVM_OPENCORE/OpenCore-$VERSION_KVM_OPENCORE.iso.gz /tmp/opencore.iso.gz
 

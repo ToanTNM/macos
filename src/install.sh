@@ -18,7 +18,7 @@ downloadImage() {
 
   case "${version,,}" in
     "sequoia" | "15"* )
-      board="Mac-937A206F2EE63C01" ;;
+      board="Mac-7BA5B2D9E42DDD94" ;;
     "sonoma" | "14"* )
       board="Mac-827FAC58A8FDFA22" ;;
     "ventura" | "13"* )
@@ -27,10 +27,12 @@ downloadImage() {
       board="Mac-B809C3757DA9BB8D" ;;
     "bigsur" | "big-sur" | "11"* )
       board="Mac-2BD1B31983FE1663" ;;
-    "catalina" | "10"* )
+    "catalina" | "10.15"* )
       board="Mac-00BE6ED71E35EB86" ;;
-    "mojave" | "9"* )
-      board="Mac-942C5DF58193131B" ;;
+    "mojave" | "10.14"* )
+      board="Mac-7BA5B2DFE22DDD8C" ;;
+    "highsierra" | "10.13"* )
+      board="Mac-7BA5B2D9E42DDD94" ;;
     *)
       error "Unknown VERSION specified, value \"${version}\" is not recognized!"
       return 1 ;;
@@ -44,7 +46,11 @@ downloadImage() {
 
   /run/progress.sh "$path" "" "$msg ([P])..." &
 
-  if ! /run/fetch.py -b "$board" -n "$file" -os latest -o "$TMP" download; then
+  # if ! /run/fetch.py -b "$board" -n "$file" -os latest -o "$TMP" download; then
+  echo /run/fetch.py -s "${version,,}" -n "$file" -o "$TMP"
+  # python3 --version
+
+  if ! /run/fetch.py -s "${version,,}" -n "$file" -o "$TMP"; then
     error "Failed to fetch macOS \"${version^}\" recovery image with board id \"$board\"!"
     fKill "progress.sh"
     return 1

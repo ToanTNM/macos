@@ -1,0 +1,27 @@
+services:
+  sonoma:
+    image: macos:sonoma
+    build:
+      context: .
+      dockerfile: Dockerfile.sonoma
+    container_name: macos-sonoma
+    environment:
+      VERSION: "sonoma"
+      CONFIG: "config.sonoma.plist"
+      DISK_SIZE: "256G"
+      RAM_SIZE: "4G"
+      CPU_CORES: "4"
+      ARGUMENTS: "-device usb-host,vendorid=0x1234,productid=0x1234"
+      BOOT_MODE: "hd" # ["full", "hd"]
+    devices:
+      - /dev/kvm
+      - /dev/bus/usb
+    volumes:
+      - ./storage/sonoma:/storage
+    cap_add:
+      - NET_ADMIN
+    ports:
+      - 8006:8006
+      - 5900:5900/tcp
+      - 5900:5900/udp
+    stop_grace_period: 2m

@@ -4,9 +4,11 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
+      args:
+        - CONFIG=config.bigsur.plist
     container_name: macos-bigsur
     environment:
-      VERSION: "bigsur"
+      VERSION: "catalina"
       DISK_SIZE: "256G"
       RAM_SIZE: "4G"
       CPU_CORES: "4"
